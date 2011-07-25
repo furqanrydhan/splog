@@ -10,7 +10,7 @@ pip install splog
 
 or
 
-pip install -e "git+http://github.com/stylepage/splog.git"
+pip install -e "git+http://github.com/stylepage/splog.git#egg=splog"
 
 ## Examples
 
