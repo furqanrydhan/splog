@@ -7,11 +7,14 @@ import sys
 
 DEFAULT_LOGGER_SETTINGS = {
     'log':{
+        'name':sys.argv[0] if len(sys.argv) > 0 else 'console',
         'level':'info',
     },
 }
 MAX_BYTES = 2097152000
 BACKUP_COUNT = 1
+
+_instance = None
 
 class event_id_wrapper(logging.Logger):
     event_id = None
@@ -34,7 +37,7 @@ class event_id_wrapper(logging.Logger):
                     msg = ' '.join([self.event_id, '(unencodable message)'])
         logging.Logger._log(self, *([args[0], msg] + list(args[2:])), **kwargs)
 
-def Logger(name, settings=DEFAULT_LOGGER_SETTINGS):
+def logger(name=None, settings=DEFAULT_LOGGER_SETTINGS):
     levels = {
         'debug': logging.DEBUG,
         'info': logging.INFO,
@@ -49,6 +52,8 @@ def Logger(name, settings=DEFAULT_LOGGER_SETTINGS):
     formatter = logging.Formatter("            %(asctime)s %(name)s %(levelname)s %(message)s")
     logging._defaultFormatter = formatter
 
+    if name is None:
+        name = settings.get('log', {}).get('name', None)
     filename = settings.get('log', {}).get('filename', None)
     if filename not in [None, ''] or settings.get('log', {}).get('dir', None) not in [None, '']:
         if filename in [None, '']:
@@ -70,3 +75,21 @@ def Logger(name, settings=DEFAULT_LOGGER_SETTINGS):
     root_logger.addHandler(handler)
 
     return logging.getLogger(name=name)
+
+def configure(settings=DEFAULT_LOGGER_SETTINGS):
+    global _instance
+    _instance = logger(settings=settings)
+    
+def log(level, line):
+    global _instance
+    try:
+        assert(_instance is not None)
+    except AssertionError:
+        configure()
+    _instance.log(level, line)
+
+debug = lambda line: log(logging.DEBUG, line)
+info = lambda line: log(logging.INFO, line)
+warning = lambda line: log(logging.WARNING, line)
+error = lambda line: log(logging.ERROR, line)
+critical = lambda line: log(logging.CRITICAL, line)
