@@ -7,8 +7,10 @@ This tool has no dependencies outside of standard Python libraries.
 ## Installation
 
 pip install splog
+
 or
-pip install -e "git+http://github.com/mattbornski/splog.git"
+
+pip install -e "git+http://github.com/stylepage/splog.git"
 
 ## Examples
 
