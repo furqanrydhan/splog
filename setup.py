@@ -5,11 +5,11 @@ import distutils.core
  
 def setup():
     distutils.core.setup(
-        name='stylepage-log',
+        name='splog',
         version='0.1',
         description='StylePage tools: Python logging',
         author='mattbornski',
-        url='http://github.com/mattbornski/splog',
+        url='http://github.com/stylepage/splog',
         package_dir={'': 'src'},
         py_modules=[
             'splog',
