@@ -6,16 +6,22 @@ This tool has no dependencies outside of standard Python libraries.
 
 ## Installation
 
+```bash
 pip install splog
+```
 
 or
 
+```bash
 pip install -e "git+http://github.com/stylepage/splog.git#egg=splog"
+```
 
 or
 
+```bash
 git clone git@github.com:stylepage/splog.git splog
 pip install -e splog
+```
 
 ## Examples
 
