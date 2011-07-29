@@ -9,51 +9,63 @@ DEFAULT_LOGGER_SETTINGS = {
     'log':{
         'name':sys.argv[0] if len(sys.argv) > 0 else 'console',
         'level':'info',
+        # File logging facility: if you configure an absolute directory and
+        # relative filename (or absolute filename), we'll pipe log messages
+        # there.
+        'dir':None,
+        'filename':None,
+        # Port logging facility: if you do not configure filename and dir,
+        # but do configure these, we'll pipe log messages to a Unix port.
+        'address':None,
+        'facility':None,
     },
 }
 MAX_BYTES = 2097152000
 BACKUP_COUNT = 1
+LEVELS = {
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warning': logging.WARNING,
+    'error': logging.ERROR,
+    'critical': logging.CRITICAL,
+}
 
-_instance = None
+if not hasattr(logging, '_splog_configured'):
+    logging._splog_configured = False
 
-class event_id_wrapper(logging.Logger):
-    event_id = None
-    def set_event(self, event_id):
-        self.event_id = str(event_id) if event_id is not None else event_id
+class context_logger(logging.Logger):
+    identifier = None
+    def set_context(self, identifier):
+        self.identifier = str(identifier) if identifier is not None else identifier
+    def clear_context(self):
+        self.identifier = None
     def _log(self, *args, **kwargs):
         msg = args[1]
         #msg = msg.replace('\n', ' ')
-        if self.event_id is not None:
+        if self.identifier is not None:
             try:
-                msg = ' '.join([self.event_id, msg])
+                msg = ' '.join([self.identifier, msg])
             except KeyboardInterrupt:
                 raise
             except:
                 try:
-                    msg = ' '.join([self.event_id, unicode(msg)])
+                    msg = ' '.join([self.identifier, unicode(msg)])
                 except KeyboardInterrupt:
                     raise
                 except:
-                    msg = ' '.join([self.event_id, '(unencodable message)'])
+                    msg = ' '.join([self.identifier, '(unencodable message)'])
         logging.Logger._log(self, *([args[0], msg] + list(args[2:])), **kwargs)
 
-def logger(name=None, settings=DEFAULT_LOGGER_SETTINGS):
-    levels = {
-        'debug': logging.DEBUG,
-        'info': logging.INFO,
-        'warning': logging.WARNING,
-        'error': logging.ERROR,
-        'critical': logging.CRITICAL,
-    }
-
-    logging.setLoggerClass(event_id_wrapper)
+def configure(settings=DEFAULT_LOGGER_SETTINGS):
+    if logging._splog_configured:
+        warning('logging is being reconfigured')
+    logging.setLoggerClass(context_logger)
 
     # create formatter
     formatter = logging.Formatter("            %(asctime)s %(name)s %(levelname)s %(message)s")
     logging._defaultFormatter = formatter
 
-    if name is None:
-        name = settings.get('log', {}).get('name', None)
+    name = settings.get('log', {}).get('name', None)
     filename = settings.get('log', {}).get('filename', None)
     if filename not in [None, ''] or settings.get('log', {}).get('dir', None) not in [None, '']:
         if filename in [None, '']:
@@ -68,28 +80,51 @@ def logger(name=None, settings=DEFAULT_LOGGER_SETTINGS):
         # No filename given, use stdout
         handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
+    handler._splog_handler = True
 
     # Set up the root logger, otherwise the first call to generate log will do so and we'll get duplicate messages.
     root_logger = logging.getLogger()
-    root_logger.setLevel(levels.get(settings.get('log', {}).get('level', None), logging.NOTSET))
+    for handler in root_logger.handlers[:]:
+        if hasattr(handler, '_splog_handler'):
+            root_logger.removeHandler(handler)
+    root_logger.setLevel(LEVELS.get(settings.get('log', {}).get('level', None), logging.NOTSET))
     root_logger.addHandler(handler)
 
-    return logging.getLogger(name=name)
+    if logging._splog_configured:
+        warning('logging has been reconfigured')
+    else:
+        logging._splog_configured = True
 
-def configure(settings=DEFAULT_LOGGER_SETTINGS):
-    global _instance
-    _instance = logger(settings=settings)
-    
+def logger(*args, **kwargs):
+    if not logging._splog_configured:
+        configure(*args, **kwargs)
+    return logging.getLogger()
+
 def log(level, line):
-    global _instance
-    try:
-        assert(_instance is not None)
-    except AssertionError:
-        configure()
-    _instance.log(level, line)
+    logger().log(level, line)    
 
 debug = lambda line: log(logging.DEBUG, line)
 info = lambda line: log(logging.INFO, line)
 warning = lambda line: log(logging.WARNING, line)
 error = lambda line: log(logging.ERROR, line)
 critical = lambda line: log(logging.CRITICAL, line)
+
+def exception(line):
+    logger().exception(line)
+
+def set_context(identifier):
+    return logger().set_context(identifier)
+    
+def clear_context():
+    return logger().clear_context()
+    
+class context(object):
+    def __init__(self, identifier):
+        self._identifier = identifier
+        self._old_identifier = None
+    def __enter__(self):
+        self._old_identifier = set_context(self._identifier)
+    def __exit__(self, *args, **kwargs):
+        set_context(self._old_identifier)
+        self._identifer = None
+        self._old_identifier = None
