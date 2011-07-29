@@ -5,21 +5,6 @@ import logging.handlers
 import os.path
 import sys
 
-DEFAULT_LOGGER_SETTINGS = {
-    'log':{
-        'name':sys.argv[0] if len(sys.argv) > 0 else 'console',
-        'level':'info',
-        # File logging facility: if you configure an absolute directory and
-        # relative filename (or absolute filename), we'll pipe log messages
-        # there.
-        'dir':None,
-        'filename':None,
-        # Port logging facility: if you do not configure filename and dir,
-        # but do configure these, we'll pipe log messages to a Unix port.
-        'address':None,
-        'facility':None,
-    },
-}
 MAX_BYTES = 2097152000
 BACKUP_COUNT = 1
 LEVELS = {
@@ -32,6 +17,8 @@ LEVELS = {
 
 if not hasattr(logging, '_splog_configured'):
     logging._splog_configured = False
+if not hasattr(logging, '_splog_name'):
+    logging._splog_name = None
 
 class context_logger(logging.Logger):
     identifier = None
@@ -56,7 +43,14 @@ class context_logger(logging.Logger):
                     msg = ' '.join([self.identifier, '(unencodable message)'])
         logging.Logger._log(self, *([args[0], msg] + list(args[2:])), **kwargs)
 
-def configure(settings=DEFAULT_LOGGER_SETTINGS):
+# Possible configuration arguments:
+# name: the name that will be displayed in the log messages
+# level: the minimum level of severity required to make it to the log
+# dir:
+# filename:
+# address:
+# facility: 
+def configure(**kwargs):
     if logging._splog_configured:
         warning('logging is being reconfigured')
     logging.setLoggerClass(context_logger)
@@ -65,17 +59,17 @@ def configure(settings=DEFAULT_LOGGER_SETTINGS):
     formatter = logging.Formatter("            %(asctime)s %(name)s %(levelname)s %(message)s")
     logging._defaultFormatter = formatter
 
-    name = settings.get('log', {}).get('name', None)
-    filename = settings.get('log', {}).get('filename', None)
-    if filename not in [None, ''] or settings.get('log', {}).get('dir', None) not in [None, '']:
+    logging._splog_name = kwargs.get('name', None)
+    filename = kwargs.get('filename', None)
+    if filename not in [None, ''] or kwargs.get('dir', None) not in [None, '']:
         if filename in [None, '']:
-            filename = name + '.log'
-        if settings.get('log', {}).get('dir', None) not in [None, '']:
-            filename = os.path.join(settings['log']['dir'], filename)
+            filename = logging._splog_name + '.log'
+        if kwargs.get('dir', None) not in [None, '']:
+            filename = os.path.join(kwargs['dir'], filename)
         # Add the log message handler to the logger
         handler = logging.handlers.RotatingFileHandler(filename, maxBytes=MAX_BYTES, backupCount=BACKUP_COUNT, encoding="UTF-8")
-    elif settings.get('log', {}).get('address', None) not in [None, ''] and settings.get('log', {}).get('facility', None) not in [None, '']:
-        handler = logging.handlers.SysLogHandler(address=settings['log']['address'], facility=settings['log']['facility'])
+    elif kwargs.get('address', None) not in [None, ''] and kwargs.get('facility', None) not in [None, '']:
+        handler = logging.handlers.SysLogHandler(address=kwargs['address'], facility=kwargs['facility'])
     else:
         # No filename given, use stdout
         handler = logging.StreamHandler(sys.stdout)
@@ -87,7 +81,7 @@ def configure(settings=DEFAULT_LOGGER_SETTINGS):
     for handler in root_logger.handlers[:]:
         if hasattr(handler, '_splog_handler'):
             root_logger.removeHandler(handler)
-    root_logger.setLevel(LEVELS.get(settings.get('log', {}).get('level', None), logging.NOTSET))
+    root_logger.setLevel(LEVELS.get(kwargs.get('level', None), logging.NOTSET))
     root_logger.addHandler(handler)
 
     if logging._splog_configured:
@@ -98,7 +92,7 @@ def configure(settings=DEFAULT_LOGGER_SETTINGS):
 def logger(*args, **kwargs):
     if not logging._splog_configured:
         configure(*args, **kwargs)
-    return logging.getLogger()
+    return logging.getLogger(logging._splog_name)
 
 def log(level, line):
     logger().log(level, line)    
