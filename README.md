@@ -12,6 +12,11 @@ or
 
 pip install -e "git+http://github.com/stylepage/splog.git#egg=splog"
 
+or
+
+git clone git@github.com:stylepage/splog.git splog
+pip install -e splog
+
 ## Examples
 
 ```python
