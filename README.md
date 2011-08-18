@@ -37,11 +37,7 @@ splog.info('Foo Bar')
 
 ```python
 import splog
-splog.configure({
-    'log':{
-        'filename':'/tmp/foo.log',
-    },
-})
+splog.configure(filename='/tmp/foo.log')
 splog.info('Foo Bar')
 with open('/tmp/foo.log', 'r') as logfile:
     print logfile.read()
