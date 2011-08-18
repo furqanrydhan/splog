@@ -7,11 +7,13 @@ This tool has no dependencies outside of standard Python libraries.
 ## Installation
 
 For a simple system-wide read-only installation:
+
 ```bash
 sudo pip install -e "git+http://github.com/stylepage/splog.git#egg=splog"
 ```
 
 or, for a system-wide developer installation:
+
 ```bash
 git clone git@github.com:stylepage/splog.git splog
 sudo pip install -e splog
