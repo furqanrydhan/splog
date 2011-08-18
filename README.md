@@ -19,6 +19,14 @@ git clone git@github.com:stylepage/splog.git splog
 sudo pip install -e splog
 ```
 
+or, for a read-only installation inside a virtualenv:
+
+```bash
+virtualenv env
+source env/bin/activate
+pip install -e "git+http://github.com/stylepage/splog.git#egg=splog"
+```
+
 ## Examples
 
 ```python
