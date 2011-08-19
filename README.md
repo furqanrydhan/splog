@@ -6,21 +6,25 @@ This tool has no dependencies outside of standard Python libraries.
 
 ## Installation
 
-```bash
-pip install splog
-```
-
-or
+For a simple system-wide read-only installation:
 
 ```bash
-pip install -e "git+http://github.com/stylepage/splog.git#egg=splog"
+sudo pip install -e "git+http://github.com/stylepage/splog.git#egg=splog"
 ```
 
-or
+or, for a system-wide developer installation:
 
 ```bash
 git clone git@github.com:stylepage/splog.git splog
-pip install -e splog
+sudo pip install -e splog
+```
+
+or, for a read-only installation inside a virtualenv:
+
+```bash
+virtualenv env
+source env/bin/activate
+pip install -e "git+http://github.com/stylepage/splog.git#egg=splog"
 ```
 
 ## Examples
@@ -33,11 +37,7 @@ splog.info('Foo Bar')
 
 ```python
 import splog
-splog.configure({
-    'log':{
-        'filename':'/tmp/foo.log',
-    },
-})
+splog.configure(filename='/tmp/foo.log')
 splog.info('Foo Bar')
 with open('/tmp/foo.log', 'r') as logfile:
     print logfile.read()
