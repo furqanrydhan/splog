@@ -2,6 +2,7 @@
 
 import logging
 import logging.handlers
+import os
 import os.path
 import sys
 import time
@@ -55,7 +56,8 @@ def configure(**kwargs):
     logging.setLoggerClass(context_logger)
 
     # create formatter
-    formatter = logging.Formatter("            %(asctime)s %(name)s %(levelname)s %(message)s")
+    hostname = os.uname()[1]
+    formatter = logging.Formatter(hostname + " %(asctime)s %(name)s %(levelname)s %(message)s")
     logging._defaultFormatter = formatter
 
     logging._splog_name = kwargs.get('name', 'splog')
