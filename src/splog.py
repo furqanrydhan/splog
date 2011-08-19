@@ -4,6 +4,7 @@ import logging
 import logging.handlers
 import os.path
 import sys
+import time
 
 MAX_BYTES = 2097152000
 BACKUP_COUNT = 1
@@ -32,9 +33,7 @@ class context_logger(logging.Logger):
         if self.identifier is not None:
             try:
                 msg = ' '.join([self.identifier, msg])
-            except KeyboardInterrupt:
-                raise
-            except:
+            except TypeError:
                 try:
                     msg = ' '.join([self.identifier, unicode(msg)])
                 except KeyboardInterrupt:
@@ -59,7 +58,7 @@ def configure(**kwargs):
     formatter = logging.Formatter("            %(asctime)s %(name)s %(levelname)s %(message)s")
     logging._defaultFormatter = formatter
 
-    logging._splog_name = kwargs.get('name', None)
+    logging._splog_name = kwargs.get('name', 'splog')
     filename = kwargs.get('filename', None)
     if filename not in [None, ''] or kwargs.get('dir', None) not in [None, '']:
         if filename in [None, '']:
@@ -103,8 +102,8 @@ warning = lambda line: log(logging.WARNING, line)
 error = lambda line: log(logging.ERROR, line)
 critical = lambda line: log(logging.CRITICAL, line)
 
-def exception(line):
-    logger().exception(line)
+def exception(e):
+    logger().exception(e)
 
 def set_context(identifier):
     return logger().set_context(identifier)
@@ -116,9 +115,14 @@ class context(object):
     def __init__(self, identifier):
         self._identifier = identifier
         self._old_identifier = None
+        self._start_time = None
     def __enter__(self):
-        self._old_identifier = set_context(self._identifier)
+        self._old_identifier = set_context(str(self._identifier))
+        self._start_time = time.time()
+        info('+++ ' + str(self._identifier) + ' +++')
     def __exit__(self, *args, **kwargs):
+        info(str(time.time() - self._start_time) + ' seconds elapsed')
+        info('--- ' + str(self._identifier) + ' ---')
         set_context(self._old_identifier)
         self._identifer = None
         self._old_identifier = None
