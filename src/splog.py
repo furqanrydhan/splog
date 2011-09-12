@@ -65,7 +65,7 @@ def configure(**kwargs):
         log_location = filename
     elif kwargs.get('address', None) not in [None, ''] and kwargs.get('facility', None) not in [None, '']:
         handler = logging.handlers.SysLogHandler(address=kwargs['address'], facility=kwargs['facility'])
-        log_location = ':'.join(kwargs['address'], kwargs['facility'])
+        log_location = ':'.join([kwargs['address'], kwargs['facility']])
     else:
         # No filename given, use stdout
         handler = logging.StreamHandler(sys.stdout)
