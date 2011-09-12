@@ -54,6 +54,7 @@ def configure(**kwargs):
 
     logging._splog_name = kwargs.get('name', 'splog')
     filename = kwargs.get('filename', None)
+    log_location = None
     if filename not in [None, ''] or kwargs.get('dir', None) not in [None, '']:
         if filename in [None, '']:
             filename = logging._splog_name + '.log'
@@ -61,11 +62,14 @@ def configure(**kwargs):
             filename = os.path.join(kwargs['dir'], filename)
         # Add the log message handler to the logger
         handler = logging.handlers.RotatingFileHandler(filename, maxBytes=MAX_BYTES, backupCount=BACKUP_COUNT, encoding="UTF-8")
+        log_location = filename
     elif kwargs.get('address', None) not in [None, ''] and kwargs.get('facility', None) not in [None, '']:
         handler = logging.handlers.SysLogHandler(address=kwargs['address'], facility=kwargs['facility'])
+        log_location = ':'.join(kwargs['address'], kwargs['facility'])
     else:
         # No filename given, use stdout
         handler = logging.StreamHandler(sys.stdout)
+        log_location = 'stdout'
     handler.setFormatter(formatter)
     handler._splog_handler = True
 
@@ -81,6 +85,9 @@ def configure(**kwargs):
         warning('logging has been reconfigured')
     else:
         logging._splog_configured = True
+        info('logging to ' + log_location)
+        if log_location not in ['stdout']:
+            print 'logging to ' + log_location
 
 def logger(*args, **kwargs):
     if not logging._splog_configured:
