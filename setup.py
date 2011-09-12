@@ -6,7 +6,7 @@ import distutils.core
 def setup():
     distutils.core.setup(
         name='splog',
-        version='0.1',
+        version='0.11',
         description='StylePage tools: Python logging',
         author='mattbornski',
         url='http://github.com/stylepage/splog',
