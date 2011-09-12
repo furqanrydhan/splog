@@ -82,7 +82,7 @@ def configure(**kwargs):
     handler.setFormatter(formatter)
 
     # The logger is the instance which will be returned when we call getLogger()
-    logger = logging.getLogger()#logging._splog_name)
+    logger = logging.getLogger(logging._splog_name)
     logger.propagate = 0
     try:
         logger.setLevel(LEVELS[kwargs.get('level', 'info')])
@@ -98,23 +98,20 @@ def configure(**kwargs):
     if log_location not in ['stdout']:
         print 'logging to ' + log_location
 
-def logger(*args, **kwargs):
+def logger(**kwargs):
     if not logging._splog_configured:
-        configure(*args, **kwargs)
-    return logging.getLogger()#logging._splog_name)
+        configure(**kwargs)
+    return logging.getLogger(logging._splog_name)
 
-def log(level, msg):
-    for line in unicode(msg).splitlines():
-        logger().log(level, line)
-
-debug = lambda msg: log(logging.DEBUG, msg)
-info = lambda msg: log(logging.INFO, msg)
-warning = lambda msg: log(logging.WARNING, msg)
-error = lambda msg: log(logging.ERROR, msg)
-critical = lambda msg: log(logging.CRITICAL, msg)
+debug = lambda msg: logger().debug(msg)
+info = lambda msg: logger().info(msg)
+warning = lambda msg: logger().warning(msg)
+error = lambda msg: logger().error(msg)
+critical = lambda msg: logger().critical(msg)
 
 def exception(e):
-    logger().error(traceback.format_exc(e))
+    for line in traceback.format_exc().splitlines():
+        logger().error(line)
 
 def set_context(identifier):
     return logger().set_context(identifier)
