@@ -34,10 +34,10 @@ class context_logger(logging.Logger):
     def clear_context(self):
         self._identifier = None
     def _log(self, *args, **kwargs):
-        for line in unicode(args[1]).splitlines():
-            if self._identifier is not None:
-                line = ' '.join([self._identifier, line])
-            logging.Logger._log(self, *([args[0], line] + list(args[2:])), **kwargs)
+        line = args[1]
+        if self._identifier is not None:
+            line = ' '.join([self._identifier, line])
+        logging.Logger._log(self, *([args[0], line] + list(args[2:])), **kwargs)
 
 # Possible configuration arguments:
 # name: the name that will be displayed in the log messages
@@ -47,8 +47,10 @@ class context_logger(logging.Logger):
 # address:
 # facility: 
 def configure(**kwargs):
+    warnings = []
     if logging._splog_configured:
         warning('logging is being reconfigured')
+        warnings.append('logging has been reconfigured')
         old_logger = logging.getLogger(logging._splog_name)
         for handler in old_logger.handlers[:]:
             old_logger.removeHandler(handler)
@@ -78,18 +80,20 @@ def configure(**kwargs):
     hostname = os.uname()[1]
     formatter = logging.Formatter(hostname + " %(asctime)s %(name)s %(levelname)s %(message)s")
     handler.setFormatter(formatter)
-    handler._splog_handler = True
 
     # The logger is the instance which will be returned when we call getLogger()
     logger = logging.getLogger(logging._splog_name)
     logger.propagate = 0
-    logger.setLevel(LEVELS.get(kwargs.get('level', 'info'), logging.NOTSET))
+    try:
+        logger.setLevel(LEVELS[kwargs.get('level', 'info')])
+    except KeyError:
+        logger.setLevel(LEVELS['info'])
+        warnings.append('logging level not valid: ' + str(kwargs['level']))
     logger.addHandler(handler)
 
-    if not logging._splog_configured:
-        logging._splog_configured = True
-    else:
-        warning('logging has been reconfigured')
+    logging._splog_configured = True
+    for w in warnings:
+        warning(w)
     info('logging to ' + log_location)
     if log_location not in ['stdout']:
         print 'logging to ' + log_location
@@ -99,14 +103,15 @@ def logger(*args, **kwargs):
         configure(*args, **kwargs)
     return logging.getLogger(logging._splog_name)
 
-def log(level, line):
-    logger().log(level, line)    
+def log(level, msg):
+    for line in unicode(msg).splitlines():
+        logger().log(level, line)
 
-debug = lambda line: log(logging.DEBUG, line)
-info = lambda line: log(logging.INFO, line)
-warning = lambda line: log(logging.WARNING, line)
-error = lambda line: log(logging.ERROR, line)
-critical = lambda line: log(logging.CRITICAL, line)
+debug = lambda msg: log(logging.DEBUG, msg)
+info = lambda msg: log(logging.INFO, msg)
+warning = lambda msg: log(logging.WARNING, msg)
+error = lambda msg: log(logging.ERROR, msg)
+critical = lambda msg: log(logging.CRITICAL, msg)
 
 def exception(e):
     logger().error(traceback.format_exc(e))
