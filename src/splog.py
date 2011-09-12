@@ -24,14 +24,14 @@ if not hasattr(logging, '_splog_name'):
     logging._splog_name = None
 
 class context_logger(logging.Logger):
-    identifier = None
+    _identifier = None
     def set_context(self, identifier):
-        self.identifier = str(identifier) if identifier is not None else identifier
+        self._identifier = str(identifier) if identifier is not None else identifier
     def clear_context(self):
-        self.identifier = None
+        self._identifier = None
     def _log(self, *args, **kwargs):
         for line in unicode(args[1]).splitlines():
-            if self.identifier is not None:
+            if self._identifier is not None:
                 line = ' '.join([self._identifier, line])
             logging.Logger._log(self, *([args[0], line] + list(args[2:])), **kwargs)
 
