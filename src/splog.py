@@ -82,7 +82,7 @@ def configure(**kwargs):
     handler.setFormatter(formatter)
 
     # The logger is the instance which will be returned when we call getLogger()
-    logger = logging.getLogger(logging._splog_name)
+    logger = logging.getLogger()#logging._splog_name)
     logger.propagate = 0
     try:
         logger.setLevel(LEVELS[kwargs.get('level', 'info')])
@@ -101,7 +101,7 @@ def configure(**kwargs):
 def logger(*args, **kwargs):
     if not logging._splog_configured:
         configure(*args, **kwargs)
-    return logging.getLogger(logging._splog_name)
+    return logging.getLogger()#logging._splog_name)
 
 def log(level, msg):
     for line in unicode(msg).splitlines():
