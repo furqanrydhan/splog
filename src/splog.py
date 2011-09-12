@@ -6,6 +6,7 @@ import os
 import os.path
 import sys
 import time
+import traceback
 
 MAX_BYTES = 2097152000
 BACKUP_COUNT = 1
@@ -29,19 +30,10 @@ class context_logger(logging.Logger):
     def clear_context(self):
         self.identifier = None
     def _log(self, *args, **kwargs):
-        msg = args[1]
-        #msg = msg.replace('\n', ' ')
-        if self.identifier is not None:
-            try:
-                msg = ' '.join([self.identifier, msg])
-            except TypeError:
-                try:
-                    msg = ' '.join([self.identifier, unicode(msg)])
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    msg = ' '.join([self.identifier, '(unencodable message)'])
-        logging.Logger._log(self, *([args[0], msg] + list(args[2:])), **kwargs)
+        for line in unicode(args[1]).splitlines():
+            if self.identifier is not None:
+                line = ' '.join([self._identifier, line])
+            logging.Logger._log(self, *([args[0], line] + list(args[2:])), **kwargs)
 
 # Possible configuration arguments:
 # name: the name that will be displayed in the log messages
@@ -105,7 +97,7 @@ error = lambda line: log(logging.ERROR, line)
 critical = lambda line: log(logging.CRITICAL, line)
 
 def exception(e):
-    logger().exception(e)
+    logger().error(traceback.format_exc(e))
 
 def set_context(identifier):
     return logger().set_context(identifier)
