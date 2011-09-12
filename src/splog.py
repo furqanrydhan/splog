@@ -45,13 +45,12 @@ class context_logger(logging.Logger):
 def configure(**kwargs):
     if logging._splog_configured:
         warning('logging is being reconfigured')
+        old_logger = logging.getLogger(logging._splog_name)
+        for handler in old_logger.handlers[:]:
+            old_logger.removeHandler(handler)
     logging.setLoggerClass(context_logger)
 
-    # create formatter
-    hostname = os.uname()[1]
-    formatter = logging.Formatter(hostname + " %(asctime)s %(name)s %(levelname)s %(message)s")
-    logging._defaultFormatter = formatter
-
+    # The handler controls where the log output goes
     logging._splog_name = kwargs.get('name', 'splog')
     filename = kwargs.get('filename', None)
     log_location = None
@@ -70,24 +69,26 @@ def configure(**kwargs):
         # No filename given, use stdout
         handler = logging.StreamHandler(sys.stdout)
         log_location = 'stdout'
+        
+    # The formatter controls what the output looks like
+    hostname = os.uname()[1]
+    formatter = logging.Formatter(hostname + " %(asctime)s %(name)s %(levelname)s %(message)s")
     handler.setFormatter(formatter)
     handler._splog_handler = True
 
-    # Set up the root logger, otherwise the first call to generate log will do so and we'll get duplicate messages.
-    root_logger = logging.getLogger()
-    for handler in root_logger.handlers[:]:
-        if hasattr(handler, '_splog_handler'):
-            root_logger.removeHandler(handler)
-    root_logger.setLevel(LEVELS.get(kwargs.get('level', None), logging.NOTSET))
-    root_logger.addHandler(handler)
+    # The logger is the instance which will be returned when we call getLogger()
+    logger = logging.getLogger(logging._splog_name)
+    logger.propagate = 0
+    logger.setLevel(LEVELS.get(kwargs.get('level', None), logging.NOTSET))
+    logger.addHandler(handler)
 
-    if logging._splog_configured:
-        warning('logging has been reconfigured')
-    else:
+    if not logging._splog_configured:
         logging._splog_configured = True
-        info('logging to ' + log_location)
-        if log_location not in ['stdout']:
-            print 'logging to ' + log_location
+    else:
+        warning('logging has been reconfigured')
+    info('logging to ' + log_location)
+    if log_location not in ['stdout']:
+        print 'logging to ' + log_location
 
 def logger(*args, **kwargs):
     if not logging._splog_configured:
