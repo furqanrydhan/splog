@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import distutils.core
- 
+
+__version__ = '0.1.2'
+
 def setup():
     distutils.core.setup(
         name='splog',
-        version='0.1.1',
+        version=__version__,
         description='StylePage tools: Python logging',
         author='mattbornski',
         url='http://github.com/stylepage/splog',
