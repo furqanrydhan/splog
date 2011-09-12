@@ -83,7 +83,7 @@ def configure(**kwargs):
     # The logger is the instance which will be returned when we call getLogger()
     logger = logging.getLogger(logging._splog_name)
     logger.propagate = 0
-    logger.setLevel(LEVELS.get(kwargs.get('level', None), logging.NOTSET))
+    logger.setLevel(LEVELS.get(kwargs.get('level', 'info'), logging.NOTSET))
     logger.addHandler(handler)
 
     if not logging._splog_configured:
