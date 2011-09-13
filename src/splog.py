@@ -4,13 +4,14 @@ import logging
 import logging.handlers
 import os
 import os.path
-import pkg_resources
 import sys
 import time
 import traceback
 
-version = pkg_resources.require('splog')[0].version
-__version__ = version
+try:
+    from _version import __version_info__, __version__, version
+except ImportError:
+    pass
 
 MAX_BYTES = 2097152000
 BACKUP_COUNT = 1
