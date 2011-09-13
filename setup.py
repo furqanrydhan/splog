@@ -5,17 +5,20 @@ import os.path
 import setuptools
 
 def setup():
-    with open(os.path.join('src', '_version.py'), 'r') as f:
+    with open(os.path.join('src', 'splog.py'), 'r') as f:
         for line in f.readlines():
             if 'version' in line:
                 try:
                     exec(line)
-                except SyntaxError:
+                    assert(isinstance(version, basestring))
+                    break
+                except (SyntaxError, AssertionError, NameError):
                     pass
     try:
         assert(isinstance(version, basestring))
-    except AssertionError:
+    except (AssertionError, NameError):
         version = 'unknown'
+    
     setuptools.setup(
         name='splog',
         version=version,

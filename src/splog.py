@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+__version_info__ = (0, 1, 8)
+__version__ = '.'.join([str(i) for i in __version_info__])
+version = __version__
+
 import logging
 import logging.handlers
 import os
@@ -7,11 +11,6 @@ import os.path
 import sys
 import time
 import traceback
-
-try:
-    from _version import __version_info__, __version__, version
-except ImportError:
-    pass
 
 MAX_BYTES = 2097152000
 BACKUP_COUNT = 1
