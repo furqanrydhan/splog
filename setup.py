@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import distutils.core
+import os.path
+import setuptools
 
 def setup():
-    with open('src/_version.py', 'r') as f:
+    with open(os.path.join('src', '_version.py'), 'r') as f:
         for line in f.readlines():
             if 'version' in line:
                 try:
@@ -15,7 +16,7 @@ def setup():
         assert(isinstance(version, basestring))
     except AssertionError:
         version = 'unknown'
-    distutils.core.setup(
+    setuptools.setup(
         name='splog',
         version=version,
         description='StylePage tools: Python logging',
