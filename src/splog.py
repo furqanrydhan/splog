@@ -34,7 +34,7 @@ class context_logger(logging.Logger):
     def clear_context(self):
         self._identifier = None
     def _log(self, *args, **kwargs):
-        line = args[1]
+        line = unicode(args[1])
         if self._identifier is not None:
             line = ' '.join([self._identifier, line])
         logging.Logger._log(self, *([args[0], line] + list(args[2:])), **kwargs)
