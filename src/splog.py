@@ -58,6 +58,7 @@ def configure(**kwargs):
     filename = None
     try:
         assert(kwargs['filename'] not in ['', None])
+        filename = kwargs['filename']
     except (AssertionError, KeyError):
         try:
             assert(kwargs['dir'] not in [None, ''])
@@ -83,7 +84,7 @@ def configure(**kwargs):
     name = kwargs.get('name', None)
     if name in [None, '']:
         name = 'root'
-    formatter = logging.Formatter(hostname + " %(asctime)s " + unicode(name) + " %(levelname)s %(message)s")
+    formatter = logging.Formatter(hostname + " %(asctime)s " + str(name) + " %(levelname)s %(message)s")
     handler.setFormatter(formatter)
 
     # The logger is the instance which will be returned when we call getLogger()
