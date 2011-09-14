@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
+FILENAME = '/tmp/foo.log'
+
+import os
 import splog
-splog.configure(filename='/tmp/foo.log')
+splog.configure(filename=FILENAME)
 splog.info('Foo Bar')
-with open('/tmp/foo.log', 'r') as logfile:
+with open(FILENAME, 'r') as logfile:
     print logfile.read()
+os.remove(FILENAME)
