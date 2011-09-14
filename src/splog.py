@@ -24,8 +24,6 @@ LEVELS = {
 
 if not hasattr(logging, '_splog_configured'):
     logging._splog_configured = False
-if not hasattr(logging, '_splog_name'):
-    logging._splog_name = None
 
 class context_logger(logging.Logger):
     _identifier = None
@@ -51,20 +49,24 @@ def configure(**kwargs):
     if logging._splog_configured:
         warning('logging is being reconfigured')
         warnings.append('logging has been reconfigured')
-        old_logger = logging.getLogger(logging._splog_name)
+        old_logger = logging.getLogger()
         for handler in old_logger.handlers[:]:
             old_logger.removeHandler(handler)
     logging.setLoggerClass(context_logger)
 
     # The handler controls where the log output goes
-    logging._splog_name = kwargs.get('name', 'splog')
-    filename = kwargs.get('filename', None)
+    filename = None
+    try:
+        assert(kwargs['filename'] not in ['', None])
+    except (AssertionError, KeyError):
+        try:
+            assert(kwargs['dir'] not in [None, ''])
+            assert(kwargs['name'] not in [None, ''])
+            filename = os.path.join(kwargs['dir'], kwargs['name'] + '.log')
+        except (AssertionError, KeyError):
+            filename = None
     log_location = None
-    if filename not in [None, ''] or kwargs.get('dir', None) not in [None, '']:
-        if filename in [None, '']:
-            filename = logging._splog_name + '.log'
-        if kwargs.get('dir', None) not in [None, '']:
-            filename = os.path.join(kwargs['dir'], filename)
+    if filename is not None:
         # Add the log message handler to the logger
         handler = logging.handlers.RotatingFileHandler(filename, maxBytes=MAX_BYTES, backupCount=BACKUP_COUNT, encoding="UTF-8")
         log_location = filename
@@ -78,11 +80,14 @@ def configure(**kwargs):
         
     # The formatter controls what the output looks like
     hostname = os.uname()[1]
-    formatter = logging.Formatter(hostname + " %(asctime)s %(name)s %(levelname)s %(message)s")
+    name = kwargs.get('name', None)
+    if name in [None, '']:
+        name = 'root'
+    formatter = logging.Formatter(hostname + " %(asctime)s " + unicode(name) + " %(levelname)s %(message)s")
     handler.setFormatter(formatter)
 
     # The logger is the instance which will be returned when we call getLogger()
-    logger = logging.getLogger(logging._splog_name)
+    logger = logging.getLogger()
     logger.propagate = 0
     try:
         logger.setLevel(LEVELS[kwargs.get('level', 'info')])
@@ -101,7 +106,7 @@ def configure(**kwargs):
 def logger(**kwargs):
     if not logging._splog_configured:
         configure(**kwargs)
-    return logging.getLogger(logging._splog_name)
+    return logging.getLogger()
 
 debug = lambda msg: logger().debug(msg)
 info = lambda msg: logger().info(msg)
