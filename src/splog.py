@@ -30,7 +30,8 @@ class context_logger(logging.Logger):
     _identifier = None
     def __init__(self, *args, **kwargs):
         if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], logging.Logger):
-            self.__dict__.update(args[0].__dict__)
+            self.__dict__ = args[0].__dict__
+            self.__class__ = type(args[0].__class__.__name__, (self.__class__, args[0].__class__), {})
         else:
             logging.Logger.__init__(self, *args, **kwargs)
     def set_context(self, identifier):
@@ -58,6 +59,9 @@ def configure(**kwargs):
         warnings.append('logging has been reconfigured')
         for handler in root_logger.handlers[:]:
             root_logger.removeHandler(handler)
+    else:
+        # Provide a class to wrap any sub-loggers
+        logging.setLoggerClass(context_logger)
 
     # The handler controls where the log output goes
     filename = None
@@ -99,11 +103,8 @@ def configure(**kwargs):
         warnings.append('logging level not valid: ' + str(kwargs['level']))
     root_logger.addHandler(handler)
 
-    # Add some features to the root logger
-    root_logger.propagate = 0
+    # Wrap the root logger
     logging._splog_root_logger = context_logger(root_logger)
-    # And provide a class for any sub-loggers to use the same features
-    logging.setLoggerClass(context_logger)
     logging._splog_configured = True
     for w in warnings:
         warning(w)
