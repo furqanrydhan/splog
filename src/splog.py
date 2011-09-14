@@ -24,9 +24,15 @@ LEVELS = {
 
 if not hasattr(logging, '_splog_configured'):
     logging._splog_configured = False
+    logging._splog_root_logger = None
 
 class context_logger(logging.Logger):
     _identifier = None
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], logging.Logger):
+            self.__dict__.update(args[0].__dict__)
+        else:
+            logging.Logger.__init__(self, *args, **kwargs)
     def set_context(self, identifier):
         self._identifier = str(identifier) if identifier is not None else identifier
     def clear_context(self):
@@ -46,13 +52,12 @@ class context_logger(logging.Logger):
 # facility: 
 def configure(**kwargs):
     warnings = []
+    root_logger = logging.getLogger()
     if logging._splog_configured:
         warning('logging is being reconfigured')
         warnings.append('logging has been reconfigured')
-        old_logger = logging.getLogger()
-        for handler in old_logger.handlers[:]:
-            old_logger.removeHandler(handler)
-    logging.setLoggerClass(context_logger)
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
 
     # The handler controls where the log output goes
     filename = None
@@ -87,16 +92,18 @@ def configure(**kwargs):
     formatter = logging.Formatter(hostname + " %(asctime)s " + str(name) + " %(levelname)s %(message)s")
     handler.setFormatter(formatter)
 
-    # The logger is the instance which will be returned when we call getLogger()
-    logger = logging.getLogger()
-    logger.propagate = 0
     try:
-        logger.setLevel(LEVELS[kwargs.get('level', 'info')])
+        root_logger.setLevel(LEVELS[kwargs.get('level', 'info')])
     except KeyError:
-        logger.setLevel(LEVELS['info'])
+        root_logger.setLevel(LEVELS['info'])
         warnings.append('logging level not valid: ' + str(kwargs['level']))
-    logger.addHandler(handler)
+    root_logger.addHandler(handler)
 
+    # Add some features to the root logger
+    root_logger.propagate = 0
+    logging._splog_root_logger = context_logger(root_logger)
+    # And provide a class for any sub-loggers to use the same features
+    logging.setLoggerClass(context_logger)
     logging._splog_configured = True
     for w in warnings:
         warning(w)
@@ -107,7 +114,7 @@ def configure(**kwargs):
 def logger(**kwargs):
     if not logging._splog_configured:
         configure(**kwargs)
-    return logging.getLogger()
+    return logging._splog_root_logger
 
 debug = lambda msg: logger().debug(msg)
 info = lambda msg: logger().info(msg)
@@ -115,7 +122,8 @@ warning = lambda msg: logger().warning(msg)
 error = lambda msg: logger().error(msg)
 critical = lambda msg: logger().critical(msg)
 
-def exception(e):
+def exception(msg):
+    logger().error(msg)
     for line in traceback.format_exc().splitlines():
         logger().error(line)
 
