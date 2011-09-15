@@ -26,23 +26,23 @@ if not hasattr(logging, '_splog_configured'):
     logging._splog_configured = False
     logging._splog_root_logger = None
 
+def _log_message_formatter(obj, fn):
+    def __log_message_formatter(*args, **kwargs):
+        line = unicode(args[1])
+        if obj._identifier is not None:
+            line = ' '.join([obj._identifier, line])
+        args = [args[0], line] + list(args[2:])
+        return fn(*args, **kwargs)
+    return __log_message_formatter
+
 class context_logger(logging.Logger):
     _identifier = None
-    def __init__(self, *args, **kwargs):
-        if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], logging.Logger):
-            self.__dict__ = args[0].__dict__
-            self.__class__ = type(args[0].__class__.__name__, (self.__class__, args[0].__class__), {})
-        else:
-            logging.Logger.__init__(self, *args, **kwargs)
-    def set_context(self, identifier):
-        self._identifier = str(identifier) if identifier is not None else identifier
-    def clear_context(self):
-        self._identifier = None
     def _log(self, *args, **kwargs):
         line = unicode(args[1])
         if self._identifier is not None:
             line = ' '.join([self._identifier, line])
-        logging.Logger._log(self, *([args[0], line] + list(args[2:])), **kwargs)
+        args = [args[0], line] + list(args[2:])
+        logging.Logger._log(self, *args, **kwargs)
 
 # Possible configuration arguments:
 # name: the name that will be displayed in the log messages
@@ -104,7 +104,9 @@ def configure(**kwargs):
     root_logger.addHandler(handler)
 
     # Wrap the root logger
-    logging._splog_root_logger = context_logger(root_logger)
+    root_logger._identifier = None
+    root_logger._log = _log_message_formatter(root_logger, root_logger._log)
+    logging._splog_root_logger = root_logger#context_logger(root_logger)
     logging._splog_configured = True
     for w in warnings:
         warning(w)
@@ -129,10 +131,14 @@ def exception(msg):
         logger().error(line)
 
 def set_context(identifier):
-    return logger().set_context(identifier)
+    l = logger()
+    ret = l._identifier
+    l._identifier = str(identifier) if identifier is not None else None
+    return ret
     
 def clear_context():
-    return logger().clear_context()
+    logger()._identifier = None
+    return None
     
 class context(object):
     def __init__(self, identifier):
@@ -147,5 +153,5 @@ class context(object):
         info(str(time.time() - self._start_time) + ' seconds elapsed')
         info('--- ' + str(self._identifier) + ' ---')
         set_context(self._old_identifier)
-        self._identifer = None
+        self._identifier = None
         self._old_identifier = None
