@@ -25,6 +25,10 @@ LEVELS = {
 if not hasattr(logging, '_splog_configured'):
     logging._splog_configured = False
     logging._splog_root_logger = None
+    logging._splog_handler = None
+    logging._splog_hostname = None
+    logging._splog_logger_name = None
+    logging._splog_context_identifier = None
 
 def _log_message_formatter(obj, fn):
     def __log_message_formatter(*args, **kwargs):
@@ -53,12 +57,11 @@ class context_logger(logging.Logger):
 # facility: 
 def configure(**kwargs):
     warnings = []
-    root_logger = logging.getLogger()
+    logging._splog_root_logger = logging.getLogger()
     if logging._splog_configured:
         warning('logging is being reconfigured')
         warnings.append('logging has been reconfigured')
-        for handler in root_logger.handlers[:]:
-            root_logger.removeHandler(handler)
+        logging._splog_root_logger.removeHandler(logging._splog_handler)
     else:
         # Provide a class to wrap any sub-loggers
         logging.setLoggerClass(context_logger)
@@ -78,36 +81,33 @@ def configure(**kwargs):
     log_location = None
     if filename is not None:
         # Add the log message handler to the logger
-        handler = logging.handlers.RotatingFileHandler(filename, maxBytes=MAX_BYTES, backupCount=BACKUP_COUNT, encoding="UTF-8")
+        logging._splog_handler = logging.handlers.RotatingFileHandler(filename, maxBytes=MAX_BYTES, backupCount=BACKUP_COUNT, encoding="UTF-8")
         log_location = filename
     elif kwargs.get('address', None) not in [None, ''] and kwargs.get('facility', None) not in [None, '']:
-        handler = logging.handlers.SysLogHandler(address=kwargs['address'], facility=kwargs['facility'])
+        logging._splog_handler = logging.handlers.SysLogHandler(address=kwargs['address'], facility=kwargs['facility'])
         log_location = ':'.join([kwargs['address'], kwargs['facility']])
     else:
         # No filename given, use stdout
-        handler = logging.StreamHandler(sys.stdout)
+        logging._splog_handler = logging.StreamHandler(sys.stdout)
         log_location = 'stdout'
         
     # The formatter controls what the output looks like
-    hostname = os.uname()[1]
+    logging._splog_hostname = str(os.uname()[1])
     name = kwargs.get('name', None)
     if name in [None, '']:
         name = 'root'
-    formatter = logging.Formatter(hostname + " %(asctime)s " + str(name) + " %(levelname)s %(message)s")
-    handler.setFormatter(formatter)
+    logging._splog_logger_name = str(name)
 
     try:
-        root_logger.setLevel(LEVELS[kwargs.get('level', 'info')])
+        logging._splog_root_logger.setLevel(LEVELS[kwargs.get('level', 'info')])
     except KeyError:
-        root_logger.setLevel(LEVELS['info'])
+        logging._splog_root_logger.setLevel(LEVELS['info'])
         warnings.append('logging level not valid: ' + str(kwargs['level']))
-    root_logger.addHandler(handler)
+    logging._splog_root_logger.addHandler(logging._splog_handler)
 
     # Wrap the root logger
-    root_logger._identifier = None
-    root_logger._log = _log_message_formatter(root_logger, root_logger._log)
-    logging._splog_root_logger = root_logger#context_logger(root_logger)
     logging._splog_configured = True
+    clear_context()
     for w in warnings:
         warning(w)
     info('logging to ' + log_location)
@@ -131,15 +131,17 @@ def exception(msg):
         logger().error(line)
 
 def set_context(identifier):
-    l = logger()
-    ret = l._identifier
-    l._identifier = str(identifier) if identifier is not None else None
+    if not logging._splog_configured:
+        configure()
+    ret = logging._splog_context_identifier
+    logging._splog_context_identifier = str(identifier) if identifier is not None else None
+    formatter = logging.Formatter(' '.join([logging._splog_hostname, '%(asctime)s', logging._splog_logger_name, '%(levelname)s'] + ([logging._splog_context_identifier] if logging._splog_context_identifier is not None else []) + ['%(message)s']))
+    logging._splog_handler.setFormatter(formatter)
     return ret
     
 def clear_context():
-    logger()._identifier = None
-    return None
-    
+    set_context(None)
+
 class context(object):
     def __init__(self, identifier):
         self._identifier = identifier
