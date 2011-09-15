@@ -30,24 +30,6 @@ if not hasattr(logging, '_splog_configured'):
     logging._splog_logger_name = None
     logging._splog_context_identifier = None
 
-def _log_message_formatter(obj, fn):
-    def __log_message_formatter(*args, **kwargs):
-        line = unicode(args[1])
-        if obj._identifier is not None:
-            line = ' '.join([obj._identifier, line])
-        args = [args[0], line] + list(args[2:])
-        return fn(*args, **kwargs)
-    return __log_message_formatter
-
-class context_logger(logging.Logger):
-    _identifier = None
-    def _log(self, *args, **kwargs):
-        line = unicode(args[1])
-        if self._identifier is not None:
-            line = ' '.join([self._identifier, line])
-        args = [args[0], line] + list(args[2:])
-        logging.Logger._log(self, *args, **kwargs)
-
 # Possible configuration arguments:
 # name: the name that will be displayed in the log messages
 # level: the minimum level of severity required to make it to the log
@@ -62,9 +44,6 @@ def configure(**kwargs):
         warning('logging is being reconfigured')
         warnings.append('logging has been reconfigured')
         logging._splog_root_logger.removeHandler(logging._splog_handler)
-    else:
-        # Provide a class to wrap any sub-loggers
-        logging.setLoggerClass(context_logger)
 
     # The handler controls where the log output goes
     filename = None
