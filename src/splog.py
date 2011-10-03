@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version_info__ = (0, 2, 1)
+__version_info__ = (0, 2, 2)
 __version__ = '.'.join([str(i) for i in __version_info__])
 version = __version__
 
@@ -27,6 +27,7 @@ if not hasattr(logging, '_splog_configured'):
     logging._splog_root_logger = None
     logging._splog_handler = None
     logging._splog_hostname = None
+    logging._splog_tag = None
     logging._splog_logger_name = None
     logging._splog_context_identifier = None
 
@@ -86,6 +87,10 @@ def configure(**kwargs):
     if name in [None, '']:
         name = 'root'
     logging._splog_logger_name = str(name)
+    tag = kwargs.get('tag', '')
+    if tag.strip() == '':
+        tag = logging._splog_hostname
+    logging._splog_tag = tag
 
     try:
         logging._splog_root_logger.setLevel(LEVELS[kwargs.get('level', 'info')])
@@ -124,7 +129,7 @@ def set_context(identifier):
         configure()
     ret = logging._splog_context_identifier
     logging._splog_context_identifier = str(identifier) if identifier is not None else None
-    formatter = logging.Formatter(' '.join([logging._splog_hostname, '%(asctime)s', logging._splog_logger_name, '%(levelname)s'] + ([logging._splog_context_identifier] if logging._splog_context_identifier is not None else []) + ['%(message)s']))
+    formatter = logging.Formatter(' '.join([logging._splog_hostname, logging._splog_tag, '%(asctime)s', logging._splog_logger_name, '%(levelname)s'] + ([logging._splog_context_identifier] if logging._splog_context_identifier is not None else []) + ['%(message)s']))
     logging._splog_handler.setFormatter(formatter)
     return ret
     
