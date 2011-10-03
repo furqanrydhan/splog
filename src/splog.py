@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version_info__ = (0, 2, 0)
+__version_info__ = (0, 2, 1)
 __version__ = '.'.join([str(i) for i in __version_info__])
 version = __version__
 
@@ -65,7 +65,12 @@ def configure(**kwargs):
     elif kwargs.get('facility', None) not in [None, '']:
         address = kwargs.get('address', '')
         if address.strip() == '':
-            address = (kwargs.get('host', 'localhost'), int(kwargs.get('port', 514)))
+            port = kwargs.get('port', '')
+            if port.strip() == '':
+                port = 514
+            else:
+                port = int(port)
+            address = (kwargs.get('host', 'localhost'), port)
             log_location = ':'.join([address[0], str(address[1]), kwargs['facility']])
         else:
             log_location = ':'.join([address, kwargs['facility']])
