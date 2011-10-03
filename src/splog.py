@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version_info__ = (0, 1, 9)
+__version_info__ = (0, 2, 0)
 __version__ = '.'.join([str(i) for i in __version_info__])
 version = __version__
 
@@ -62,9 +62,14 @@ def configure(**kwargs):
         # Add the log message handler to the logger
         logging._splog_handler = logging.handlers.RotatingFileHandler(filename, maxBytes=MAX_BYTES, backupCount=BACKUP_COUNT, encoding="UTF-8")
         log_location = filename
-    elif kwargs.get('address', None) not in [None, ''] and kwargs.get('facility', None) not in [None, '']:
-        logging._splog_handler = logging.handlers.SysLogHandler(address=kwargs['address'], facility=kwargs['facility'])
-        log_location = ':'.join([kwargs['address'], kwargs['facility']])
+    elif kwargs.get('facility', None) not in [None, '']:
+        address = kwargs.get('address', '')
+        if address.strip() == '':
+            address = (kwargs.get('host', 'localhost'), int(kwargs.get('port', 514)))
+            log_location = ':'.join([address[0], str(address[1]), kwargs['facility']])
+        else:
+            log_location = ':'.join([address, kwargs['facility']])
+        logging._splog_handler = logging.handlers.SysLogHandler(address=address, facility=kwargs['facility'])
     else:
         # No filename given, use stdout
         logging._splog_handler = logging.StreamHandler(sys.stdout)
