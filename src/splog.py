@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version_info__ = (0, 2, 3)
+__version_info__ = (0, 2, 4)
 __version__ = '.'.join([str(i) for i in __version_info__])
 version = __version__
 
@@ -8,6 +8,7 @@ import logging
 import logging.handlers
 import os
 import os.path
+import socket
 import sys
 import time
 import traceback
@@ -75,7 +76,7 @@ def configure(**kwargs):
             log_location = ':'.join([address[0], str(address[1])])
         else:
             log_location = address
-        settings = {'address':address}
+        settings = {'address':address, 'socktype':{'tcp':socket.SOCK_STREAM, 'udp':socket.SOCK_DGRAM}[kwargs.get('socktype', 'tcp')]}
         facility = kwargs.get('facility', '')
         if facility.strip() != '':
             settings['facility'] = facility
