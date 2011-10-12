@@ -88,8 +88,8 @@ def configure(**kwargs):
                 prio = '<%d>' % self.encodePriority(self.facility, self.mapPriority(record.levelname))
                 if type(msg) is unicode:
                     msg = msg.encode('utf-8')
-                    if codecs:
-                        msg = codecs.BOM_UTF8 + msg
+                    if logging.handlers.codecs:
+                        msg = logging.handlers.codecs.BOM_UTF8 + msg
                 msg = prio + msg
                 try:
                     try:
