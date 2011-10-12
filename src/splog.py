@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version_info__ = (0, 2, 5)
+__version_info__ = (0, 2, 6)
 __version__ = '.'.join([str(i) for i in __version_info__])
 version = __version__
 
@@ -85,20 +85,21 @@ def configure(**kwargs):
         if settings['socktype'] == socket.SOCK_STREAM:
             def emit_tcp(self, record):
                 msg = self.format(record) + '\n'
-                """
-                We need to convert record level to lowercase, maybe this will
-                change in the future.
-                """
-                prio = '<%d>' % self.encodePriority(self.facility,
-                                                    self.mapPriority(record.levelname))
-                # Message is a string. Convert to bytes as required by RFC 5424
+                prio = '<%d>' % self.encodePriority(self.facility, self.mapPriority(record.levelname))
                 if type(msg) is unicode:
                     msg = msg.encode('utf-8')
                     if codecs:
                         msg = codecs.BOM_UTF8 + msg
                 msg = prio + msg
                 try:
-                    self.socket.sendall(msg)
+                    try:
+                        self.socket.sendall(msg)
+                    except socket.error:
+                        # Reconnect and retry.
+                        self.socket = socket.socket(socket.AF_INET, self.socktype)
+                        if self.socktype == socket.SOCK_STREAM:
+                            self.socket.connect(self.address)
+                        self.socket.sendall(msg)
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except:
