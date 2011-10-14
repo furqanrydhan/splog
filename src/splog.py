@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version_info__ = (0, 2, 7)
+__version_info__ = (0, 2, 8)
 __version__ = '.'.join([str(i) for i in __version_info__])
 version = __version__
 
@@ -81,33 +81,52 @@ def configure(**kwargs):
         if facility.strip() != '':
             settings['facility'] = facility
             log_location += ':' + facility
-        logging._splog_handler = logging.handlers.SysLogHandler(**settings)
-        if settings['socktype'] == socket.SOCK_STREAM:
-            def emit_tcp(self, record):
-                msg = self.format(record) + '\n'
-                prio = '<%d>' % self.encodePriority(self.facility, self.mapPriority(record.levelname))
-                if type(msg) is unicode:
-                    msg = msg.encode('utf-8')
-                    if logging.handlers.codecs:
-                        msg = logging.handlers.codecs.BOM_UTF8 + msg
-                msg = prio + msg
-                try:
+        try:
+            logging._splog_handler = logging.handlers.SysLogHandler(**settings)
+            if settings['socktype'] == socket.SOCK_STREAM:
+                def emit_tcp(self, record):
+                    msg = self.format(record) + '\n'
+                    prio = '<%d>' % self.encodePriority(self.facility, self.mapPriority(record.levelname))
+                    if type(msg) is unicode:
+                        msg = msg.encode('utf-8')
+                        if logging.handlers.codecs:
+                            msg = logging.handlers.codecs.BOM_UTF8 + msg
+                    msg = prio + msg
+                    # Errors occuring here are difficult to log, so I fallback to spitting them
+                    # out to stderr and hope somebody is watching
                     try:
-                        self.socket.sendall(msg)
-                    except socket.error:
-                        # Reconnect and retry.
-                        self.socket = socket.socket(socket.AF_INET, self.socktype)
-                        if self.socktype == socket.SOCK_STREAM:
-                            self.socket.connect(self.address)
-                        self.socket.sendall(msg)
-                except (KeyboardInterrupt, SystemExit):
-                    raise
-                except:
-                    self.handleError(record)
-            logging._splog_handler.emit = lambda *args, **kwargs: emit_tcp(logging._splog_handler, *args, **kwargs)
+                        try:
+                            self.socket.sendall(msg)
+                        except socket.timeout:
+                            # Handle one level up
+                            raise
+                        except socket.error:
+                            sys.stderr.write('reconnecting splog socket\n')
+                            # Reconnect and retry.
+                            self.socket = socket.socket(socket.AF_INET, self.socktype)
+                            self.socket.settimeout(0.0)
+                            if self.socktype == socket.SOCK_STREAM:
+                                self.socket.connect(self.address)
+                            self.socket.sendall(msg)
+                    except socket.timeout:
+                        sys.stderr.write('splog socket timeout\n')
+                        sys.stderr.write(self.format(record) + '\n')
+                        # Move along now
+                    except (KeyboardInterrupt, SystemExit):
+                        raise
+                    except:
+                        sys.stderr.write('unable to splog\n')
+                        sys.stderr.write(self.format(record) + '\n')
+                        self.handleError(record)
+                logging._splog_handler.emit = lambda *args, **kwargs: emit_tcp(logging._splog_handler, *args, **kwargs)
+                logging._splog_handler.socket.settimeout(0.0)
+        except socket.error as e:
+            # Can't connect to log server
+            sys.stderr.write('Unable to connect to log server\n' + str(e) + '\n')
+            log_location = None
             
-    else:
-        # No filename given, use stdout
+    if log_location is None:
+        # Fallback to stdout
         logging._splog_handler = logging.StreamHandler(sys.stdout)
         log_location = 'stdout'
         
